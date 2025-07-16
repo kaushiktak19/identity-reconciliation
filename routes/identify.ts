@@ -58,17 +58,27 @@ identifyRoute.post('/', async (req, res) => {
 
         const primaryContact = allContacts.find(c => c.linkprecedence === 'primary') || allContacts[0]
 
-        const exists = allContacts.some(c => 
-            c.email === email && c.phonenumber === phoneNumber
-        )
-        
-        if (!exists) {
+        const isDuplicate = allContacts.some(contact => {
+            if (email && phoneNumber) {
+                return contact.email === email && contact.phonenumber === phoneNumber;
+            }
+            if (email && !phoneNumber) {
+                return contact.email === email;
+            }
+            if (!email && phoneNumber) {
+                return contact.phonenumber === phoneNumber;
+            }
+            return false;
+        });
+
+        if (!isDuplicate) {
             await client.query(
                 `INSERT INTO Contact (email, phoneNumber, linkPrecedence, linkedId, createdAt, updatedAt)
                 VALUES ($1, $2, 'secondary', $3, NOW(), NOW())`,
                 [email, phoneNumber, primaryContact.id]
-            )
+            );
         }
+
 
         for (const contact of allContacts) {
             if (contact.id !== primaryContact.id && contact.linkprecedence === 'primary') {
